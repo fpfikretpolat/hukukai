@@ -172,19 +172,28 @@ if yuklenen_dosyalar:
                 aktif_prompt = DAVA_PROMPTLARI[secilen_kategori]
                 st.session_state.analiz_sonucu = davayi_analiz_et(islenmis_icerik, aktif_prompt)
 
+# --- SONUÇ GÖSTERİMİ VE İNDİRME EKRANI ---
 if st.session_state.analiz_sonucu:
-    st.success("✅ Analiz Tamamlandı!")
-    st.markdown("---")
     
-    st.markdown(st.session_state.analiz_sonucu)
-    st.markdown("---")
-    
-    word_dosyasi = word_olustur(st.session_state.analiz_sonucu)
-    
-    st.download_button(
-        label="📄 Raporu Word Dosyası Olarak İndir",
-        data=word_dosyasi,
-        file_name="hukuki_analiz_raporu.docx",
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        use_container_width=True
-    )
+    # EĞER SONUÇ BİR HATA MESAJIYSA (Başında ❌ varsa)
+    if st.session_state.analiz_sonucu.startswith("❌"):
+        st.error("Sistem şu anda yanıt veremedi. Lütfen birazdan tekrar deneyin.")
+        st.warning(st.session_state.analiz_sonucu) # Hatayı sarı kutuda göster
+        
+    # EĞER SONUÇ GERÇEK BİR ANALİZSE (Başarı durumu)
+    else:
+        st.success("✅ Analiz Tamamlandı!")
+        st.markdown("---")
+        
+        st.markdown(st.session_state.analiz_sonucu)
+        st.markdown("---")
+        
+        word_dosyasi = word_olustur(st.session_state.analiz_sonucu)
+        
+        st.download_button(
+            label="📄 Raporu Word Dosyası Olarak İndir",
+            data=word_dosyasi,
+            file_name="hukuki_analiz_raporu.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            use_container_width=True
+        )
