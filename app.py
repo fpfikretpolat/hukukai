@@ -143,8 +143,8 @@ if "analiz_sonucu" not in st.session_state:
     st.session_state.analiz_sonucu = None
 
 # --- ARAYÜZ (UI) BAŞLANGICI ---
-st.title("⚖️ Hukuk AI Asistanı (Çoklu Branş)")
-st.markdown("Farklı hukuk dallarına özel uzmanlaşmış yapay zeka ile çapraz dosya analizi.")
+st.title("⚖️ Hukuk AI Asistanı")
+st.markdown("Hukuk dallarına özel uzmanlaşmış yapay zeka ile dosya analizi.")
 
 # YENİ: SOL MENÜDE DAVA TÜRÜ SEÇİMİ
 st.sidebar.header("⚙️ Analiz Ayarları")
@@ -155,7 +155,6 @@ secilen_kategori = st.sidebar.selectbox(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.success("✅ Sistem Aktif: gemini-2.5-flash")
 st.sidebar.info(f"🧠 Aktif Uzmanlık: **{secilen_kategori}**")
 
 yuklenen_dosyalar = st.file_uploader(
