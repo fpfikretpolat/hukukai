@@ -1,5 +1,4 @@
 import streamlit as st
-import time
 import fitz  # PyMuPDF
 import os
 from google import genai
@@ -8,47 +7,22 @@ from docx import Document
 from io import BytesIO
 import PIL.Image
 from PIL import ImageSequence
-
-# GÜNCELLEME: 503 hatalarına karşı dirençli analiz fonksiyonu
-def davayi_analiz_et(gorsel_ve_metin_listesi, secilen_prompt):
-    max_deneme = 3
-    bekleme_suresi = 3 # İlk hata alınırsa 3 saniye bekle
-    
-    for deneme in range(max_deneme):
-        try:
-            gonderilecek_paket = [secilen_prompt] + gorsel_ve_metin_listesi
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=gonderilecek_paket
-            )
-            return response.text
-            
-        except Exception as e:
-            hata_mesaji = str(e)
-            # Eğer hata 503 (Sunucu Yoğunluğu) veya 429 (Kota Aşımı) ise
-            if "503" in hata_mesaji or "UNAVAILABLE" in hata_mesaji or "429" in hata_mesaji:
-                if deneme < max_deneme - 1:
-                    # Kullanıcıya sağ alttan şık bir bildirim verip arka planda bekliyoruz
-                    st.toast(f"⚠️ Google sunucuları yoğun. {bekleme_suresi} saniye içinde otomatik tekrar deneniyor... (Deneme {deneme + 1}/{max_deneme})")
-                    time.sleep(bekleme_suresi)
-                    bekleme_suresi *= 2 # Bir sonraki denemede daha çok bekle (3 sn, 6 sn...)
-                    continue # Döngünün başına dön ve tekrar dene
-            
-            # Eğer başka bir hataysa veya deneme hakkı bittiyse hatayı ekrana bas
-            return f"❌ AI Analiz hatası: {hata_mesaji}\n\nLütfen 1-2 dakika bekleyip tekrar deneyin."
-
+import zipfile  # YENİ: UDF (UYAP) arşivlerini açmak için
+import re       # YENİ: UDF içindeki etiketleri temizlemek için
+import time
 
 # --- SAYFA AYARLARI ---
 st.set_page_config(page_title="Hukuk AI Asistanı", page_icon="⚖️", layout="wide")
-# GÜNCELLEME: Sağ üstteki butonları ve alttaki Streamlit yazısını gizleyen CSS kodu
+
 gizleme_stili = """
             <style>
-            #MainMenu {visibility: hidden;} /* Sağ üstteki 3 nokta menüsünü gizler */
-            footer {visibility: hidden;} /* En alttaki 'Made with Streamlit' yazısını gizler */
-            header {visibility: hidden;} /* Sağ üstteki Share, Star ve GitHub ikonlarını barındıran üst şeridi gizler */
+            #MainMenu {visibility: hidden;} 
+            footer {visibility: hidden;} 
+            header {visibility: hidden;} 
             </style>
             """
 st.markdown(gizleme_stili, unsafe_allow_html=True)
+
 # --- API KURULUMU ---
 load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
@@ -60,7 +34,6 @@ if not api_key:
 client = genai.Client(api_key=api_key)
 
 # --- UZMAN PROMPT KÜTÜPHANESİ ---
-# Dava türlerine göre yapay zekanın beynini değiştiren sözlük
 DAVA_PROMPTLARI = {
     "Ceza Hukuku (Ağır Ceza / Asliye)": """
         Sen uzman bir Türk Ceza Avukatısın. Dosyadaki ifadeler, HTS kayıtları, kamera görüntüleme tutanakları ve bilirkişi raporları arasındaki MADDİ ÇELİŞKİLERİ bul.
@@ -84,8 +57,8 @@ DAVA_PROMPTLARI = {
     """,
     "İcra ve İflas Hukuku (İlamsız/İlamlı Takip)": """
         Sen uzman bir Türk İcra ve İflas Hukuku Avukatısın. Dosyadaki takip taleplerini, ödeme/icra emirlerini, tebligat mazbatalarını, itiraz dilekçelerini ve hesap özetlerini çok dikkatli incele.
-        Özellikle şu usul hatalarını ve çelişkileri ara: Tebligat Kanunu'na aykırı (usulsüz) tebligat yapılıp yapılmadığı, 7 günlük hak düşürücü itiraz sürelerinin kaçırılıp kaçırılmadığı, takip talebi ile ödeme emri arasındaki bedel/faiz uyuşmazlıkları ve yetkisiz icra dairesi seçimi.
-        Analizini 3 başlıkta yap: 1. İcra Dosyası Özeti, 2. Tespit Edilen Usul Hataları ve Çelişkiler (Tebligat, Süre, Faiz Oranları), 3. Hukuki Risk ve Şikayet/İtiraz Stratejisi (İmzaya veya Borca İtiraz).
+        Özellikle şu usul hatalarını ve çelişkileri ara: Tebligat Kanunu'na aykırı (usulsüz) tebligat yapılıp yapılmadığı, hak düşürücü itiraz sürelerinin kaçırılıp kaçırılmadığı, takip talebi ile ödeme emri arasındaki bedel/faiz uyuşmazlıkları ve yetkisiz icra dairesi seçimi.
+        Analizini 3 başlıkta yap: 1. İcra Dosyası Özeti, 2. Tespit Edilen Usul Hataları ve Çelişkiler (Tebligat, Süre, Faiz Oranları), 3. Hukuki Risk ve Şikayet/İtiraz Stratejisi.
     """
 }
 
@@ -96,6 +69,7 @@ def dosya_isleyici(yuklenen_dosyalar):
         dosya_adi = dosya.name.lower()
         islenmis_icerik.append(f"\n\n{'='*50}\n📁 DOSYA KAYNAĞI: {dosya.name}\n{'='*50}\n")
         try:
+            # 1. SENARYO: PDF
             if dosya_adi.endswith(".pdf"):
                 doc = fitz.open(stream=dosya.read(), filetype="pdf")
                 for sayfa in doc:
@@ -110,6 +84,25 @@ def dosya_isleyici(yuklenen_dosyalar):
                         islenmis_icerik.append(f"\n--- {dosya.name} / SAYFA {sayfa.number + 1} (GÖRSEL TARAMA) ---\n")
                         islenmis_icerik.append(img)
             
+            # 2. SENARYO: UDF (UYAP FORMATI)
+            elif dosya_adi.endswith(".udf"):
+                st.toast(f"📄 {dosya.name} (UDF) dosyası ayrıştırılıyor...")
+                with zipfile.ZipFile(dosya) as archive:
+                    if 'content.xml' in archive.namelist():
+                        xml_content = archive.read('content.xml').decode('utf-8', errors='ignore')
+                        # UYAP metinleri genellikle CDATA içinde yer alır
+                        cdata_match = re.search(r'<!\[CDATA\[(.*?)\]\]>', xml_content, re.DOTALL)
+                        raw_text = cdata_match.group(1) if cdata_match else xml_content
+                        # XML ve HTML etiketlerini tamamen temizle
+                        temiz_metin = re.sub(r'<[^>]+>', ' ', raw_text)
+                        temiz_metin = re.sub(r'\s+', ' ', temiz_metin).strip()
+                        
+                        islenmis_icerik.append(f"\n--- {dosya.name} ---\n")
+                        islenmis_icerik.append(temiz_metin)
+                    else:
+                        st.error(f"❌ {dosya.name} geçerli bir UYAP dosyası değil.")
+
+            # 3. SENARYO: TIF, JPG, PNG GÖRÜNTÜLERİ
             elif dosya_adi.endswith((".tif", ".tiff", ".jpg", ".jpeg", ".png")):
                 st.toast(f"🖼️ {dosya.name} görüntü dosyası işleniyor...")
                 img = PIL.Image.open(dosya)
@@ -125,17 +118,28 @@ def dosya_isleyici(yuklenen_dosyalar):
             st.error(f"❌ '{dosya.name}' okuma hatası: {e}")
     return islenmis_icerik
 
-# GÜNCELLEME: Artık seçilen prompt dışarıdan parametre olarak geliyor
 def davayi_analiz_et(gorsel_ve_metin_listesi, secilen_prompt):
-    try:
-        gonderilecek_paket = [secilen_prompt] + gorsel_ve_metin_listesi
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=gonderilecek_paket
-        )
-        return response.text
-    except Exception as e:
-        return f"❌ AI Analiz hatası: {e}"
+    max_deneme = 3
+    bekleme_suresi = 3 
+    
+    for deneme in range(max_deneme):
+        try:
+            gonderilecek_paket = [secilen_prompt] + gorsel_ve_metin_listesi
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=gonderilecek_paket
+            )
+            return response.text
+            
+        except Exception as e:
+            hata_mesaji = str(e)
+            if "503" in hata_mesaji or "UNAVAILABLE" in hata_mesaji or "429" in hata_mesaji:
+                if deneme < max_deneme - 1:
+                    st.toast(f"⚠️ Google sunucuları yoğun. {bekleme_suresi} sn içinde tekrar deneniyor... (Deneme {deneme + 1}/{max_deneme})")
+                    time.sleep(bekleme_suresi)
+                    bekleme_suresi *= 2 
+                    continue 
+            return f"❌ AI Analiz hatası: {hata_mesaji}\n\nLütfen 1-2 dakika bekleyip tekrar deneyin."
 
 def word_olustur(rapor_metni):
     doc = Document()
@@ -152,9 +156,8 @@ if "analiz_sonucu" not in st.session_state:
 
 # --- ARAYÜZ (UI) BAŞLANGICI ---
 st.title("⚖️ Hukuk AI Asistanı")
-st.markdown("Hukuk dallarına özel uzmanlaşmış yapay zeka ile dosya analizi.")
+st.markdown("Farklı hukuk dallarına özel uzmanlaşmış yapay zeka ile çapraz dosya analizi.")
 
-# YENİ: SOL MENÜDE DAVA TÜRÜ SEÇİMİ
 st.sidebar.header("⚙️ Analiz Ayarları")
 secilen_kategori = st.sidebar.selectbox(
     "Dava Türünü Seçin",
@@ -163,11 +166,13 @@ secilen_kategori = st.sidebar.selectbox(
 )
 
 st.sidebar.markdown("---")
+st.sidebar.success("✅ Sistem Aktif: gemini-2.5-flash")
 st.sidebar.info(f"🧠 Aktif Uzmanlık: **{secilen_kategori}**")
 
+# GÜNCELLEME: UDF Desteği arayüze eklendi
 yuklenen_dosyalar = st.file_uploader(
-    "Dosyaları (PDF, TIF, JPG, PNG) buraya sürükleyin", 
-    type=["pdf", "tif", "tiff", "jpg", "jpeg", "png"], 
+    "Dosyaları (UDF, PDF, TIF, JPG, PNG) buraya sürükleyin", 
+    type=["udf", "pdf", "tif", "tiff", "jpg", "jpeg", "png"], 
     accept_multiple_files=True
 )
 
@@ -176,32 +181,21 @@ if yuklenen_dosyalar:
     
     if st.button("Seçili Branşta Analiz Et", type="primary", use_container_width=True):
         with st.spinner(f"⏳ Yapay zeka {secilen_kategori} uzmanı olarak dosyaları okuyor..."):
-            
             islenmis_icerik = dosya_isleyici(yuklenen_dosyalar)
-            
             if islenmis_icerik:
-                # GÜNCELLEME: Seçilen kategoriye ait promptu fonksiyona gönderiyoruz
                 aktif_prompt = DAVA_PROMPTLARI[secilen_kategori]
                 st.session_state.analiz_sonucu = davayi_analiz_et(islenmis_icerik, aktif_prompt)
 
-# --- SONUÇ GÖSTERİMİ VE İNDİRME EKRANI ---
 if st.session_state.analiz_sonucu:
-    
-    # EĞER SONUÇ BİR HATA MESAJIYSA (Başında ❌ varsa)
     if st.session_state.analiz_sonucu.startswith("❌"):
         st.error("Sistem şu anda yanıt veremedi. Lütfen birazdan tekrar deneyin.")
-        st.warning(st.session_state.analiz_sonucu) # Hatayı sarı kutuda göster
-        
-    # EĞER SONUÇ GERÇEK BİR ANALİZSE (Başarı durumu)
+        st.warning(st.session_state.analiz_sonucu) 
     else:
         st.success("✅ Analiz Tamamlandı!")
         st.markdown("---")
-        
         st.markdown(st.session_state.analiz_sonucu)
         st.markdown("---")
-        
         word_dosyasi = word_olustur(st.session_state.analiz_sonucu)
-        
         st.download_button(
             label="📄 Raporu Word Dosyası Olarak İndir",
             data=word_dosyasi,
