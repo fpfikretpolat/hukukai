@@ -40,7 +40,15 @@ def davayi_analiz_et(gorsel_ve_metin_listesi, secilen_prompt):
 
 # --- SAYFA AYARLARI ---
 st.set_page_config(page_title="Hukuk AI Asistanı", page_icon="⚖️", layout="wide")
-
+# GÜNCELLEME: Sağ üstteki butonları ve alttaki Streamlit yazısını gizleyen CSS kodu
+gizleme_stili = """
+            <style>
+            #MainMenu {visibility: hidden;} /* Sağ üstteki 3 nokta menüsünü gizler */
+            footer {visibility: hidden;} /* En alttaki 'Made with Streamlit' yazısını gizler */
+            header {visibility: hidden;} /* Sağ üstteki Share, Star ve GitHub ikonlarını barındıran üst şeridi gizler */
+            </style>
+            """
+st.markdown(gizleme_stili, unsafe_allow_html=True)
 # --- API KURULUMU ---
 load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
