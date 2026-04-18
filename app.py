@@ -1,4 +1,5 @@
 import streamlit as st
+import time
 import fitz  # PyMuPDF
 import os
 from google import genai
@@ -7,6 +8,35 @@ from docx import Document
 from io import BytesIO
 import PIL.Image
 from PIL import ImageSequence
+
+# GÜNCELLEME: 503 hatalarına karşı dirençli analiz fonksiyonu
+def davayi_analiz_et(gorsel_ve_metin_listesi, secilen_prompt):
+    max_deneme = 3
+    bekleme_suresi = 3 # İlk hata alınırsa 3 saniye bekle
+    
+    for deneme in range(max_deneme):
+        try:
+            gonderilecek_paket = [secilen_prompt] + gorsel_ve_metin_listesi
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=gonderilecek_paket
+            )
+            return response.text
+            
+        except Exception as e:
+            hata_mesaji = str(e)
+            # Eğer hata 503 (Sunucu Yoğunluğu) veya 429 (Kota Aşımı) ise
+            if "503" in hata_mesaji or "UNAVAILABLE" in hata_mesaji or "429" in hata_mesaji:
+                if deneme < max_deneme - 1:
+                    # Kullanıcıya sağ alttan şık bir bildirim verip arka planda bekliyoruz
+                    st.toast(f"⚠️ Google sunucuları yoğun. {bekleme_suresi} saniye içinde otomatik tekrar deneniyor... (Deneme {deneme + 1}/{max_deneme})")
+                    time.sleep(bekleme_suresi)
+                    bekleme_suresi *= 2 # Bir sonraki denemede daha çok bekle (3 sn, 6 sn...)
+                    continue # Döngünün başına dön ve tekrar dene
+            
+            # Eğer başka bir hataysa veya deneme hakkı bittiyse hatayı ekrana bas
+            return f"❌ AI Analiz hatası: {hata_mesaji}\n\nLütfen 1-2 dakika bekleyip tekrar deneyin."
+
 
 # --- SAYFA AYARLARI ---
 st.set_page_config(page_title="Hukuk AI Asistanı", page_icon="⚖️", layout="wide")
