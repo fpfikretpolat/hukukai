@@ -19,6 +19,9 @@ gizleme_stili = """
             #MainMenu {visibility: hidden;} 
             footer {visibility: hidden;} 
             header {visibility: hidden;} 
+            /* Sağ alt köşedeki Streamlit logoları ve yüzen butonları gizler */
+            .viewerBadge_container {display: none !important;}
+            .viewerBadge_link {display: none !important;}
             </style>
             """
 st.markdown(gizleme_stili, unsafe_allow_html=True)
