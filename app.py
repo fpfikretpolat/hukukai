@@ -14,26 +14,34 @@ import time
 # --- SAYFA AYARLARI ---
 st.set_page_config(page_title="Hukuk AI Asistanı", page_icon="⚖️", layout="wide")
 
-# GÜNCELLEME: Mobil uyumlu, Sidebar tuşunu bozmayan temiz CSS
+
+# GÜNCELLEME: Yan menü (Sidebar) kontrollerini bozmayan Cerrahi CSS
 gizleme_stili = """
             <style>
-            /* Sağ üstteki ana menü (3 nokta) ve Deploy butonunu gizle */
+            /* Sadece sağ üstteki 3 nokta (MainMenu) ve Deploy butonunu gizle */
             #MainMenu {visibility: hidden !important;}
-            .stDeployButton {display: none !important;} 
+            .stDeployButton {display: none !important;}
             
-            /* Alt kısmı ve Made with Streamlit yazısını gizle */
+            /* Alt kısımdaki 'Made with Streamlit' yazısını gizle */
             footer {visibility: hidden !important;}
             
-            /* Sağ alttaki geliştirici/yönetici logolarını gizle */
-            [data-testid="stToolbar"] {display: none !important;}
-            [data-testid="stDecoration"] {display: none !important;}
+            /* Sağ alttaki o inatçı logoları gizle */
             .viewerBadge_container {display: none !important;}
             .viewerBadge_link {display: none !important;}
             #st-manage-app-badge {display: none !important;}
+            
+            /* Üstteki renkli çizgiyi (Decoration) gizle */
+            [data-testid="stDecoration"] {display: none !important;}
+            
+            /* ÖNEMLİ: Sol üstteki 'Aç/Kapat' butonunun (Sidebar Toggle) 
+               her zaman görünür ve tıklanabilir olduğundan emin olalım */
+            [data-testid="stSidebarCollapsedControl"] {
+                display: flex !important;
+                visibility: visible !important;
+            }
             </style>
             """
 st.markdown(gizleme_stili, unsafe_allow_html=True)
-
 
 
 # --- API KURULUMU ---
