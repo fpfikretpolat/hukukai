@@ -14,24 +14,30 @@ import time
 # --- SAYFA AYARLARI ---
 st.set_page_config(page_title="Hukuk AI Asistanı", page_icon="⚖️", layout="wide")
 
-# GÜNCELLEME: Streamlit'in güncel DOM yapısına uygun, tüm logoları yok eden "Nükleer" CSS
+# GÜNCELLEME: Streamlit 1.30+ versiyonları için Kesin Gizleme Kodu
 gizleme_stili = """
             <style>
-            /* Üstteki ana menüyü (Share vb.) gizler */
+            /* Üst menü ve butonları gizle */
             #MainMenu {visibility: hidden !important;}
+            header {visibility: hidden !important;}
             [data-testid="stHeader"] {display: none !important;}
+            .stDeployButton {display: none !important;} /* Sağ üstteki Deploy butonunu yokedir */
             
-            /* Alttaki 'Made with Streamlit' yazısını gizler */
+            /* Alt kısmı ve filigranı gizle */
             footer {visibility: hidden !important;}
             [data-testid="stBottom"] {display: none !important;}
             
-            /* Sağ alttaki geliştirici rozetlerini/logolarını gizler */
+            /* Sağ alttaki geliştirici rozetlerini/logolarını gizle */
+            [data-testid="stToolbar"] {display: none !important;}
+            [data-testid="stDecoration"] {display: none !important;}
             .viewerBadge_container {display: none !important;}
             .viewerBadge_link {display: none !important;}
-            [data-testid="stToolbar"] {display: none !important;}
+            #st-manage-app-badge {display: none !important;}
             </style>
             """
 st.markdown(gizleme_stili, unsafe_allow_html=True)
+
+
 
 # --- API KURULUMU ---
 load_dotenv()
