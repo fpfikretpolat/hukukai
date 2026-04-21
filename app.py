@@ -181,7 +181,7 @@ if "analiz_sonucu" not in st.session_state:
 
 # --- ARAYÜZ (UI) BAŞLANGICI ---
 st.title("⚖️ Hukuk AI Asistanı")
-st.markdown("Farklı hukuk dallarına özel uzmanlaşmış yapay zeka ile çapraz dosya analizi.")
+st.markdown("Hukuk dallarına özel uzmanlaşmış yapay zeka ile dosya analizi.")
 
 st.sidebar.header("⚙️ Analiz Ayarları")
 secilen_kategori = st.sidebar.selectbox(
@@ -191,7 +191,6 @@ secilen_kategori = st.sidebar.selectbox(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.success("✅ Sistem Aktif: gemini-2.5-flash")
 st.sidebar.info(f"🧠 Aktif Uzmanlık: **{secilen_kategori}**")
 
 # GÜNCELLEME: UDF Desteği arayüze eklendi
