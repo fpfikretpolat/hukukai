@@ -27,7 +27,7 @@ connection_string = (
 # Gemini Kurulumu
 if GEMINI_KEY:
     genai.configure(api_key=GEMINI_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash') # Hız için flash idealdir
+    model = genai.GenerativeModel('gemini-2.5-flash') # Hız için flash idealdir
 
 # Masaüstü ajanından gelecek verinin kalıbı
 class SorguIstegi(BaseModel):
