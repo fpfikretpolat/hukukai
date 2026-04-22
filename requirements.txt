@@ -1,6 +1,5 @@
-streamlit
-pymupdf
-google-genai
-python-dotenv
-python-docx
-Pillow
+fastapi==0.109.2
+uvicorn==0.27.1
+pydantic==2.6.1
+google-generativeai==0.4.0
+pyodbc==5.1.0
