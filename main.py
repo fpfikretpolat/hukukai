@@ -45,6 +45,34 @@ class LoginIstegi(BaseModel):
     username: str
     password: str
 
+# --- YENİ: KAYIT OLMA KAPISI ---
+class KayitIstegi(BaseModel):
+    username: str
+    password: str
+
+@app.post("/register")
+async def kayit_ol(istek: KayitIstegi):
+    try:
+        conn = pyodbc.connect(connection_string)
+        cursor = conn.cursor()
+        
+        # Kullanıcı adı zaten var mı kontrol et
+        cursor.execute("SELECT id FROM kullanicilar WHERE kullanici_adi = ?", (istek.username,))
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Bu kullanıcı adı zaten alınmış!")
+        
+        # Yeni kullanıcıyı ekle (Başlangıç kotası: 5000 kelime)
+        cursor.execute("""
+            INSERT INTO kullanicilar (kullanici_adi, sifre_hash, toplam_kota, kullanilan_kota) 
+            VALUES (?, ?, ?, ?)
+        """, (istek.username, istek.password, 5000, 0))
+        
+        conn.commit()
+        return {"durum": "basarili", "mesaj": "Hesap oluşturuldu. Giriş yapabilirsiniz."}
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
 @app.post("/login")
 async def giris_kontrol(istek: LoginIstegi):
     try:
