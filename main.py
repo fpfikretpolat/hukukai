@@ -13,13 +13,13 @@ DB_USERNAME = os.getenv("DB_USERNAME")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 
-# Veritabanı Bağlantı Cümlesi (AZURE SQL İÇİN GÜNCELLENDİ)
+# Veritabanı Bağlantı Cümlesi (ZIRHLI VERSİYON)
 connection_string = (
     f"DRIVER={{ODBC Driver 17 for SQL Server}};"
     f"SERVER=tcp:{DB_SERVER},1433;"
     f"DATABASE={DB_DATABASE};"
     f"UID={DB_USERNAME};"
-    f"PWD={DB_PASSWORD};"
+    f"PWD={{{DB_PASSWORD}}};" 
     f"Encrypt=yes;"
     f"TrustServerCertificate=no;"
     f"Connection Timeout=30;"
