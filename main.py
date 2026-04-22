@@ -1,6 +1,7 @@
 import os
 import pyodbc
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import google.generativeai as genai
 
@@ -50,25 +51,30 @@ class KayitIstegi(BaseModel):
     username: str
     password: str
 
+# --- YENİ VE GÜVENLİ KAYIT KAPISI ---
 @app.post("/register")
 async def kayit_ol(istek: KayitIstegi):
     try:
         conn = pyodbc.connect(connection_string)
         cursor = conn.cursor()
         
-        # Kullanıcı adı zaten var mı kontrol et
+        # 1. Kullanıcı adı zaten var mı kontrol et
         cursor.execute("SELECT id FROM kullanicilar WHERE kullanici_adi = ?", (istek.username,))
         if cursor.fetchone():
             raise HTTPException(status_code=400, detail="Bu kullanıcı adı zaten alınmış!")
         
-        # Yeni kullanıcıyı ekle (Başlangıç kotası: 5000 kelime)
+        # 2. Sadece var olan sütunlara (kullanici_adi, sifre_hash) kayıt yapıyoruz
         cursor.execute("""
-            INSERT INTO kullanicilar (kullanici_adi, sifre_hash, toplam_kota, kullanilan_kota) 
-            VALUES (?, ?, ?, ?)
-        """, (istek.username, istek.password, 5000, 0))
+            INSERT INTO kullanicilar (kullanici_adi, sifre_hash) 
+            VALUES (?, ?)
+        """, (istek.username, istek.password))
         
         conn.commit()
-        return {"durum": "basarili", "mesaj": "Hesap oluşturuldu. Giriş yapabilirsiniz."}
+        return {"durum": "basarili", "mesaj": "Hesap oluşturuldu."}
+        
+    except Exception as e:
+        # 3. YENİ: Gerçek veritabanı hatasını gizleme, ajana gönder!
+        raise HTTPException(status_code=500, detail=f"SQL Hatası: {str(e)}")
     finally:
         if 'conn' in locals():
             conn.close()
