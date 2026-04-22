@@ -40,6 +40,31 @@ class SorguIstegi(BaseModel):
 def home():
     return {"mesaj": "Hukuk AI Sunucusu Aktif!"}
 
+# --- YENİ EKLENEN GİRİŞ KONTROL KAPISI ---
+class LoginIstegi(BaseModel):
+    username: str
+    password: str
+
+@app.post("/login")
+async def giris_kontrol(istek: LoginIstegi):
+    try:
+        conn = pyodbc.connect(connection_string)
+        cursor = conn.cursor()
+        
+        # Sadece veritabanında bu kullanıcı var mı diye bakıyoruz
+        cursor.execute("SELECT id FROM kullanicilar WHERE kullanici_adi = ? AND sifre_hash = ?", 
+                       (istek.username, istek.password))
+        user = cursor.fetchone()
+        
+        if not user:
+            raise HTTPException(status_code=401, detail="Hatalı kullanıcı adı veya şifre!")
+            
+        return {"durum": "basarili"}
+    finally:
+        if 'conn' in locals():
+            conn.close()
+# ------------------------------------------
+
 @app.post("/analiz")
 async def analiz_et(istek: SorguIstegi):
     try:
