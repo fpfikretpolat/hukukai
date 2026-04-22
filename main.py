@@ -13,13 +13,17 @@ DB_USERNAME = os.getenv("DB_USERNAME")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 
-# Veritabanı Bağlantı Cümlesi
+# Veritabanı Bağlantı Cümlesi (AZURE SQL İÇİN GÜNCELLENDİ)
 connection_string = (
     f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-    f"SERVER={DB_SERVER};DATABASE={DB_DATABASE};"
-    f"UID={DB_USERNAME};PWD={DB_PASSWORD}"
+    f"SERVER=tcp:{DB_SERVER},1433;"
+    f"DATABASE={DB_DATABASE};"
+    f"UID={DB_USERNAME};"
+    f"PWD={DB_PASSWORD};"
+    f"Encrypt=yes;"
+    f"TrustServerCertificate=no;"
+    f"Connection Timeout=30;"
 )
-
 # Gemini Kurulumu
 if GEMINI_KEY:
     genai.configure(api_key=GEMINI_KEY)
