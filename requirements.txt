@@ -1,5 +1,5 @@
 fastapi
 uvicorn
 pyodbc
-google-generativeai>=0.7.2
+google-genai
 pydantic>=2.0
