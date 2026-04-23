@@ -4,6 +4,7 @@ import tempfile
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from typing import Optional
 import google.generativeai as genai
 
 app = FastAPI(title="Hukuk AI API")
@@ -41,14 +42,15 @@ class KayitIstegi(BaseModel):
     username: str
     password: str
 
-# Masaüstü ajanından gelecek verinin GÜNCELLENMİŞ kalıbı
+
 class SorguIstegi(BaseModel):
     username: str
     password: str
     prompt: str
-    brans: str = "Genel Analiz" # Hangi uzmanlık kullanılacak
-    doc_context: str = ""       # Sadece ilk yüklemede dolu gelecek
-    file_uri: str = None        # Gemini'nin dosyaya verdiği kimlik (Varsa)
+    brans: str = "Genel Analiz"
+    doc_context: str = ""
+    # Burada str | None veya Optional[str] kullanarak "null" değerine izin veriyoruz
+    file_uri: Optional[str] = None
 
 
 @app.get("/")
