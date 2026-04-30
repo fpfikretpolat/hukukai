@@ -139,8 +139,12 @@ async def analiz_et(istek: SorguIstegi):
         mesaj_icerigi = []
         if uploaded_file:
             mesaj_icerigi.append(uploaded_file)
-            
-        mesaj_icerigi.append(f"Uzmanlık Alanı/Branş: {istek.brans}\nSoru: {istek.prompt}")
+        # Evrensel Susturucu ve Odaklayıcı Kural
+        siki_kural = "SİSTEM KURALI: Eğer kullanıcı açıkça 'dosyayı özetle' demediyse, KESİNLİKLE dosyanın genel özetini çıkarma. Gereksiz giriş cümleleri kurma. DOĞRUDAN ve SADECE sorulan soruya net, pratik ve odaklı bir cevap ver.\n\n"
+        
+        mesaj_icerigi.append(f"Uzmanlık Alanı/Branş: {istek.brans}\n{siki_kural}Soru: {istek.prompt}")
+
+
         
         response = client.models.generate_content(
             model='gemini-2.5-flash',
